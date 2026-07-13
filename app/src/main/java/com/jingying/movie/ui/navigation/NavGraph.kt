@@ -9,6 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.jingying.movie.ui.category.CategoryScreen
+import com.jingying.movie.ui.debug.DebugScreen
 import com.jingying.movie.ui.detail.DetailScreen
 import com.jingying.movie.ui.history.HistoryScreen
 import com.jingying.movie.ui.home.HomeScreen
@@ -22,6 +23,7 @@ object Routes {
     const val DETAIL = "detail/{vodId}"
     const val PLAYER = "player/{vodId}/{episodeIndex}"
     const val HISTORY = "history"
+    const val DEBUG = "debug"
 
     fun detail(vodId: Int) = "detail/$vodId"
     fun player(vodId: Int, episodeIndex: Int) = "player/$vodId/$episodeIndex"
@@ -34,10 +36,12 @@ fun JingyingNavGraph(
     NavHost(navController = navController, startDestination = Routes.HOME) {
         composable(Routes.HOME) {
             HomeScreen(
+                navController = navController,
                 onSearchClick = { navController.navigate(Routes.SEARCH) },
                 onCategoryClick = { navController.navigate(Routes.CATEGORY) },
                 onMovieClick = { vodId -> navController.navigate(Routes.detail(vodId)) },
-                onHistoryClick = { navController.navigate(Routes.HISTORY) }
+                onHistoryClick = { navController.navigate(Routes.HISTORY) },
+                onDebugClick = { navController.navigate(Routes.DEBUG) }
             )
         }
 
@@ -97,6 +101,10 @@ fun JingyingNavGraph(
                 onBack = { navController.popBackStack() },
                 onMovieClick = { vodId -> navController.navigate(Routes.detail(vodId)) }
             )
+        }
+
+        composable(Routes.DEBUG) {
+            DebugScreen(onBack = { navController.popBackStack() })
         }
     }
 }

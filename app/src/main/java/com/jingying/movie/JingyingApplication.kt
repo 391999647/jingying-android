@@ -6,9 +6,15 @@ import coil.ImageLoaderFactory
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import dagger.hilt.android.HiltAndroidApp
+import com.jingying.movie.util.AppLogger
 
 @HiltAndroidApp
 class JingyingApplication : Application(), ImageLoaderFactory {
+
+    override fun onCreate() {
+        super.onCreate()
+        AppLogger.init(this)
+    }
 
     override fun newImageLoader(): ImageLoader {
         return ImageLoader.Builder(this)

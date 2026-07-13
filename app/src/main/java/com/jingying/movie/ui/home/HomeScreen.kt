@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -29,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +38,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.jingying.movie.R
 import com.jingying.movie.ui.components.EmptyState
 import com.jingying.movie.ui.components.LoadingShimmer
@@ -48,10 +51,12 @@ import com.jingying.movie.ui.theme.White
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun HomeScreen(
+    navController: NavController,
     onSearchClick: () -> Unit,
     onCategoryClick: () -> Unit,
     onMovieClick: (Int) -> Unit,
     onHistoryClick: () -> Unit,
+    onDebugClick: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -61,6 +66,19 @@ fun HomeScreen(
         refreshing = uiState.isRefreshing,
         onRefresh = { viewModel.refresh() }
     )
+
+    // 监听从 CategoryScreen 返回的 selectedTypeId
+    val selectedTypeId = navController.currentBackStackEntry
+        ?.savedStateHandle
+        ?.getStateFlow("selectedTypeId", 0)
+        ?.collectAsState()
+    LaunchedEffect(selectedTypeId?.value) {
+        val typeId = selectedTypeId?.value ?: 0
+        if (typeId > 0) {
+            viewModel.selectType(typeId)
+            navController.currentBackStackEntry?.savedStateHandle?.remove<Int>("selectedTypeId")
+        }
+    }
 
     val shouldLoadMore by remember {
         derivedStateOf {
@@ -99,6 +117,9 @@ fun HomeScreen(
                     }
                     IconButton(onClick = onHistoryClick) {
                         Icon(Icons.Default.History, contentDescription = "历史")
+                    }
+                    IconButton(onClick = onDebugClick) {
+                        Icon(Icons.Default.BugReport, contentDescription = "调试")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.jingying.movie.util.AppLogger
 
 @Singleton
 class MovieRepository @Inject constructor(
@@ -25,19 +26,27 @@ class MovieRepository @Inject constructor(
     private val database: AppDatabase
 ) {
 
+    companion object {
+        private const val TAG = "MovieRepository"
+    }
+
     suspend fun getTypes(forceRefresh: Boolean = false): Resource<List<MovieType>> = withContext(Dispatchers.IO) {
         try {
             if (!forceRefresh) {
                 val cached = database.typeDao().getTypes()
                 if (cached.isNotEmpty()) {
+                    AppLogger.d(TAG, "getTypes: 从缓存加载 ${cached.size} 个分类")
                     return@withContext Resource.Success(cached.map { it.toDomain() })
                 }
             }
+            AppLogger.i(TAG, "getTypes: 请求API...")
             val response = apiService.getTypes()
+            AppLogger.i(TAG, "getTypes: API返回 ${response.data?.size ?: 0} 个分类")
             val types = response.requireData().map { it.toDomain() }
             database.typeDao().insertTypes(types.map { it.toEntity() })
             Resource.Success(types)
         } catch (e: Exception) {
+            AppLogger.e(TAG, "getTypes 失败: ${e.message}", e)
             val cached = database.typeDao().getTypes()
             if (cached.isNotEmpty()) {
                 Resource.Success(cached.map { it.toDomain() })
@@ -61,7 +70,9 @@ class MovieRepository @Inject constructor(
                     return@withContext Resource.Success(cached.map { it.toDomain() } to pagination)
                 }
             }
+            AppLogger.i(TAG, "getMovieList: 请求API page=$page typeId=$typeId")
             val response = apiService.getMovieList(page = page, limit = limit, typeId = typeId)
+            AppLogger.i(TAG, "getMovieList: API返回 ${response.data?.size ?: 0} 部影片")
             val list = response.requireData().map { it.toDomain() }
             val pagination = response.pagination?.toDomain() ?: Pagination(page, limit, list.size, 1)
             if (page == 1 && typeId == null) {
