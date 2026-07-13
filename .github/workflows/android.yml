@@ -59,8 +59,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Run Lint
-        run: ./gradlew lintDebug --no-daemon
-        continue-on-error: true
+        run: ./gradlew lintDebug --no-daemon --continue || true
 
   release:
     name: Create GitHub Release
