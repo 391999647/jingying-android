@@ -94,17 +94,21 @@ fun PlayerScreen(
     val view = LocalView.current
     val isLandscape = rememberIsLandscape()
 
-    DisposableEffect(playerState.isFullscreen, isLandscape) {
+    // 布局决定：全屏按钮或物理横屏都显示全屏界面
+    val showFullscreenLayout = playerState.isFullscreen || isLandscape
+
+    // 只有全屏按钮被点击时才强制旋转，物理旋转被动响应
+    DisposableEffect(playerState.isFullscreen) {
         activity?.let { act ->
             val window = act.window
             val insetsController = WindowCompat.getInsetsController(window, window.decorView)
-            if (playerState.isFullscreen || isLandscape) {
+            if (playerState.isFullscreen) {
                 act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
                 insetsController.hide(WindowInsetsCompat.Type.systemBars())
                 insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                 window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             } else {
-                act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
                 insetsController.show(WindowInsetsCompat.Type.systemBars())
                 window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             }
@@ -128,7 +132,7 @@ fun PlayerScreen(
 
     Scaffold(
         topBar = {
-            if (!playerState.isFullscreen && !isLandscape) {
+            if (!showFullscreenLayout) {
                 TopAppBar(
                     title = {
                         Text(
@@ -163,7 +167,7 @@ fun PlayerScreen(
                 CircularProgressIndicator(color = AccentRed)
             }
         } else {
-            if (playerState.isFullscreen || isLandscape) {
+            if (showFullscreenLayout) {
                 FullscreenPlayerLayout(
                     movie = movie,
                     currentEpisodeIndex = uiState.currentEpisodeIndex,
@@ -219,7 +223,8 @@ private fun PortraitPlayerLayout(
                     ExoVideoPlayer(
                         videoUrl = videoUrl,
                         playerState = playerState,
-                        onPlayerReady = { viewModel.onPlayerReady(it) },
+                        onPositionUpdate = { pos, dur -> viewModel.onPositionUpdate(pos, dur) },
+                        onPlaybackStateChanged = { isPlaying -> viewModel.onPlaybackStateChanged(isPlaying) },
                         onError = { viewModel.saveHistoryImmediate() },
                         onCompletion = { viewModel.nextEpisode() },
                         modifier = Modifier.fillMaxSize()
@@ -282,7 +287,8 @@ private fun FullscreenPlayerLayout(
             ExoVideoPlayer(
                 videoUrl = videoUrl,
                 playerState = playerState,
-                onPlayerReady = { viewModel.onPlayerReady(it) },
+                onPositionUpdate = { pos, dur -> viewModel.onPositionUpdate(pos, dur) },
+                onPlaybackStateChanged = { isPlaying -> viewModel.onPlaybackStateChanged(isPlaying) },
                 onError = { viewModel.saveHistoryImmediate() },
                 onCompletion = { viewModel.nextEpisode() },
                 modifier = Modifier.fillMaxSize()

@@ -3,12 +3,12 @@ package com.jingying.movie.ui.player
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.media3.exoplayer.ExoPlayer
 import com.jingying.movie.data.repository.HistoryRepository
 import com.jingying.movie.data.repository.MovieRepository
 import com.jingying.movie.domain.model.MovieDetail
 import com.jingying.movie.domain.model.PlayHistory
 import com.jingying.movie.domain.model.Resource
+import com.jingying.movie.util.AppLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -24,6 +24,11 @@ class PlayerViewModel @Inject constructor(
     private val historyRepository: HistoryRepository
 ) : ViewModel() {
 
+    companion object {
+        private const val TAG = "PlayerViewModel"
+        private const val AUTO_SAVE_INTERVAL = 15_000L // 15秒自动保存一次
+    }
+
     private val vodId: Int = savedStateHandle["vodId"] ?: 0
     private val initialEpisodeIndex: Int = savedStateHandle["episodeIndex"] ?: 0
 
@@ -33,9 +38,8 @@ class PlayerViewModel @Inject constructor(
     private val _playerState = MutableStateFlow(PlayerState())
     val playerState: StateFlow<PlayerState> = _playerState
 
-    private var saveHistoryJob: Job? = null
-    private var positionTrackingJob: Job? = null
-    private var exoPlayerRef: ExoPlayer? = null
+    private var autoSaveJob: Job? = null
+    private var isDirty = false // 有未保存的进度
 
     init {
         loadDetail()
@@ -63,25 +67,19 @@ class PlayerViewModel @Inject constructor(
                         position = history?.position ?: 0L,
                         isPlaying = true
                     )
+                    startAutoSave()
+                    AppLogger.i(TAG, "加载详情成功: ${detail.vodName}, 集数=$episodeIndex")
                 }
                 is Resource.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = result.message
                     )
+                    AppLogger.e(TAG, "加载详情失败: ${result.message}")
                 }
                 else -> {}
             }
         }
-    }
-
-    fun onPlayerReady(player: ExoPlayer) {
-        exoPlayerRef = player
-        _playerState.value = _playerState.value.copy(
-            duration = player.duration.coerceAtLeast(0L),
-            isPlaying = player.isPlaying
-        )
-        startPositionTracking()
     }
 
     fun onPositionUpdate(position: Long, duration: Long) {
@@ -89,26 +87,36 @@ class PlayerViewModel @Inject constructor(
             position = position,
             duration = duration
         )
+        isDirty = true
+    }
+
+    fun onPlaybackStateChanged(isPlaying: Boolean) {
+        _playerState.value = _playerState.value.copy(isPlaying = isPlaying)
+        // 暂停时立即保存
+        if (!isPlaying && isDirty) {
+            saveHistoryImmediate()
+        }
     }
 
     fun togglePlayPause() {
-        val player = exoPlayerRef ?: return
-        player.playWhenReady = !player.isPlaying
-        _playerState.value = _playerState.value.copy(isPlaying = player.isPlaying)
+        _playerState.value = _playerState.value.copy(
+            isPlaying = !_playerState.value.isPlaying
+        )
     }
 
     fun seekTo(position: Long) {
-        val player = exoPlayerRef ?: return
-        val safePosition = position.coerceIn(0, player.duration.coerceAtLeast(0L))
-        player.seekTo(safePosition)
-        _playerState.value = _playerState.value.copy(position = safePosition)
+        _playerState.value = _playerState.value.copy(
+            seekTarget = position,
+            position = position
+        )
+        isDirty = true
     }
 
     fun seekBy(deltaMs: Long) {
-        val player = exoPlayerRef ?: return
-        val newPosition = (player.currentPosition + deltaMs).coerceIn(0, player.duration.coerceAtLeast(0L))
-        player.seekTo(newPosition)
-        _playerState.value = _playerState.value.copy(position = newPosition)
+        val current = _playerState.value.position
+        val duration = _playerState.value.duration
+        val newPosition = (current + deltaMs).coerceIn(0, duration.coerceAtLeast(0))
+        seekTo(newPosition)
     }
 
     fun switchEpisode(index: Int) {
@@ -126,9 +134,12 @@ class PlayerViewModel @Inject constructor(
             _playerState.value = _playerState.value.copy(
                 position = history?.position ?: 0L,
                 duration = 0L,
+                seekTarget = history?.position ?: 0L,
                 isPlaying = true,
                 isLoading = false
             )
+            isDirty = false
+            AppLogger.i(TAG, "切换集数: ${episodes[index].name}")
         }
     }
 
@@ -151,6 +162,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun saveHistoryImmediate() {
+        if (!isDirty) return
         val movie = _uiState.value.movie ?: return
         val episode = movie.episodes.getOrNull(_uiState.value.currentEpisodeIndex) ?: return
         val position = _playerState.value.position
@@ -158,49 +170,41 @@ class PlayerViewModel @Inject constructor(
         if (duration <= 0) return
 
         viewModelScope.launch {
-            historyRepository.saveHistory(
-                PlayHistory(
-                    vodId = movie.vodId,
-                    vodName = movie.vodName,
-                    vodPic = movie.vodPic,
-                    episodeName = episode.name,
-                    episodeUrl = episode.url,
-                    position = position,
-                    duration = duration
+            try {
+                historyRepository.saveHistory(
+                    PlayHistory(
+                        vodId = movie.vodId,
+                        vodName = movie.vodName,
+                        vodPic = movie.vodPic,
+                        episodeName = episode.name,
+                        episodeUrl = episode.url,
+                        position = position,
+                        duration = duration
+                    )
                 )
-            )
-        }
-    }
-
-    private fun startPositionTracking() {
-        positionTrackingJob?.cancel()
-        positionTrackingJob = viewModelScope.launch {
-            while (true) {
-                delay(1000)
-                val player = exoPlayerRef ?: continue
-                val position = player.currentPosition.coerceAtLeast(0L)
-                val duration = player.duration.coerceAtLeast(0L)
-                _playerState.value = _playerState.value.copy(
-                    position = position,
-                    duration = duration
-                )
-                scheduleSaveHistory()
+                isDirty = false
+                AppLogger.d(TAG, "保存进度: ${position}ms / ${duration}ms")
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "保存进度失败", e)
             }
         }
     }
 
-    private fun scheduleSaveHistory() {
-        if (saveHistoryJob?.isActive == true) return
-        saveHistoryJob = viewModelScope.launch {
-            delay(3000)
-            saveHistoryImmediate()
+    private fun startAutoSave() {
+        autoSaveJob?.cancel()
+        autoSaveJob = viewModelScope.launch {
+            while (true) {
+                delay(AUTO_SAVE_INTERVAL)
+                if (isDirty) {
+                    saveHistoryImmediate()
+                }
+            }
         }
     }
 
     override fun onCleared() {
         super.onCleared()
-        positionTrackingJob?.cancel()
-        saveHistoryJob?.cancel()
+        autoSaveJob?.cancel()
         saveHistoryImmediate()
     }
 
