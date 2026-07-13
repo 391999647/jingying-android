@@ -3,9 +3,9 @@ package com.jingying.movie.ui.player
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.exoplayer.ExoPlayer
 import com.jingying.movie.data.repository.HistoryRepository
 import com.jingying.movie.data.repository.MovieRepository
-import com.jingying.movie.domain.model.Episode
 import com.jingying.movie.domain.model.MovieDetail
 import com.jingying.movie.domain.model.PlayHistory
 import com.jingying.movie.domain.model.Resource
@@ -35,7 +35,7 @@ class PlayerViewModel @Inject constructor(
 
     private var saveHistoryJob: Job? = null
     private var positionTrackingJob: Job? = null
-    private var mediaPlayerRef: tv.danmaku.ijk.media.player.IjkMediaPlayer? = null
+    private var exoPlayerRef: ExoPlayer? = null
 
     init {
         loadDetail()
@@ -75,11 +75,11 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    fun onPlayerReady(mp: tv.danmaku.ijk.media.player.IjkMediaPlayer) {
-        mediaPlayerRef = mp
+    fun onPlayerReady(player: ExoPlayer) {
+        exoPlayerRef = player
         _playerState.value = _playerState.value.copy(
-            duration = mp.duration.coerceAtLeast(0L),
-            isPlaying = mp.isPlaying
+            duration = player.duration.coerceAtLeast(0L),
+            isPlaying = player.isPlaying
         )
         startPositionTracking()
     }
@@ -92,26 +92,22 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun togglePlayPause() {
-        val mp = mediaPlayerRef ?: return
-        if (mp.isPlaying) {
-            mp.pause()
-        } else {
-            mp.start()
-        }
-        _playerState.value = _playerState.value.copy(isPlaying = mp.isPlaying)
+        val player = exoPlayerRef ?: return
+        player.playWhenReady = !player.isPlaying
+        _playerState.value = _playerState.value.copy(isPlaying = player.isPlaying)
     }
 
     fun seekTo(position: Long) {
-        val mp = mediaPlayerRef ?: return
-        val safePosition = position.coerceIn(0, mp.duration.coerceAtLeast(0L))
-        mp.seekTo(safePosition)
+        val player = exoPlayerRef ?: return
+        val safePosition = position.coerceIn(0, player.duration.coerceAtLeast(0L))
+        player.seekTo(safePosition)
         _playerState.value = _playerState.value.copy(position = safePosition)
     }
 
     fun seekBy(deltaMs: Long) {
-        val mp = mediaPlayerRef ?: return
-        val newPosition = (mp.currentPosition + deltaMs).coerceIn(0, mp.duration.coerceAtLeast(0L))
-        mp.seekTo(newPosition)
+        val player = exoPlayerRef ?: return
+        val newPosition = (player.currentPosition + deltaMs).coerceIn(0, player.duration.coerceAtLeast(0L))
+        player.seekTo(newPosition)
         _playerState.value = _playerState.value.copy(position = newPosition)
     }
 
@@ -181,9 +177,9 @@ class PlayerViewModel @Inject constructor(
         positionTrackingJob = viewModelScope.launch {
             while (true) {
                 delay(1000)
-                val mp = mediaPlayerRef ?: continue
-                val position = mp.currentPosition.coerceAtLeast(0L)
-                val duration = mp.duration.coerceAtLeast(0L)
+                val player = exoPlayerRef ?: continue
+                val position = player.currentPosition.coerceAtLeast(0L)
+                val duration = player.duration.coerceAtLeast(0L)
                 _playerState.value = _playerState.value.copy(
                     position = position,
                     duration = duration

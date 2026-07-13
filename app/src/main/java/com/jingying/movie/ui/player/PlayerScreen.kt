@@ -65,7 +65,7 @@ import com.jingying.movie.R
 import com.jingying.movie.domain.model.Episode
 import com.jingying.movie.domain.model.MovieDetail
 import com.jingying.movie.ui.player.components.GestureOverlay
-import com.jingying.movie.ui.player.components.IjkVideoPlayer
+import com.jingying.movie.ui.player.components.ExoVideoPlayer
 import com.jingying.movie.ui.player.components.PlayerControls
 import com.jingying.movie.ui.theme.AccentRed
 import com.jingying.movie.ui.theme.BackgroundWhite
@@ -214,7 +214,7 @@ private fun PortraitPlayerLayout(
                     .background(Color.Black)
             ) {
                 if (videoUrl.isNotBlank()) {
-                    IjkVideoPlayer(
+                    ExoVideoPlayer(
                         videoUrl = videoUrl,
                         playerState = playerState,
                         onPlayerReady = { viewModel.onPlayerReady(it) },
@@ -277,7 +277,7 @@ private fun FullscreenPlayerLayout(
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (videoUrl.isNotBlank()) {
-            IjkVideoPlayer(
+            ExoVideoPlayer(
                 videoUrl = videoUrl,
                 playerState = playerState,
                 onPlayerReady = { viewModel.onPlayerReady(it) },
