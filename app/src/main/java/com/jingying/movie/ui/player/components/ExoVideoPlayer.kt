@@ -15,7 +15,6 @@ import androidx.media3.common.Player
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.hls.DefaultHlsDataSourceFactory
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
 import com.jingying.movie.ui.player.PlayerState
@@ -47,13 +46,8 @@ fun ExoVideoPlayer(
                 5_000
             ).build()
 
-        val hlsDataSourceFactory = DefaultHlsDataSourceFactory { httpDataSourceFactory }
-        val mediaSourceFactory = DefaultMediaSourceFactory(context)
-            .setDataSourceFactory(httpDataSourceFactory)
-            .setHlsDataSourceFactory(hlsDataSourceFactory)
-
         ExoPlayer.Builder(context)
-            .setMediaSourceFactory(mediaSourceFactory)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(httpDataSourceFactory))
             .setLoadControl(loadControl)
             .build().apply {
                 addListener(object : Player.Listener {
