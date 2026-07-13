@@ -50,13 +50,13 @@ jobs:
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
           keyPassword: ${{ secrets.KEY_PASSWORD }}
 
-      - name: Upload Build Artifact
+      - name: Upload Debug APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: app-artifact
-          path: |
-            app/build/outputs/apk/debug/app-debug.apk
-            app/build/outputs/apk/release/*-signed.apk
+          name: app-debug
+          path: app/build/outputs/apk/**/*.apk
+          if-no-files-found: warn
 
       - name: Run Lint
         run: ./gradlew lintDebug --no-daemon
@@ -76,11 +76,11 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: app-artifact
+          name: app-debug
           path: apk
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: apk/*-signed.apk
+          files: apk/**/*.apk
           generate_release_notes: true
