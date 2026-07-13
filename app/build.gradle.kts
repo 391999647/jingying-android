@@ -21,7 +21,9 @@ android {
             useSupportLibrary = true
         }
 
-
+        ndk {
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+        }
     }
 
     buildTypes {
@@ -73,7 +75,7 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
 
-    implementation(libs.bundles.media3)
+    implementation(libs.bundles.ijkplayer)
 
     implementation(libs.androidx.paging.runtime)
     implementation(libs.androidx.paging.compose)
