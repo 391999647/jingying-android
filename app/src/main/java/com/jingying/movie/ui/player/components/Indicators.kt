@@ -7,8 +7,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.FastForward
-import androidx.compose.material.icons.automirrored.filled.FastRewind
+import androidx.compose.material.icons.filled.FastForward
+import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Icon
@@ -39,7 +39,7 @@ fun SeekIndicator(
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
-                imageVector = if (currentSeekPosition >= 0) Icons.AutoMirrored.Filled.FastForward else Icons.AutoMirrored.Filled.FastRewind,
+                imageVector = if (currentSeekPosition >= 0) Icons.Default.FastForward else Icons.Default.FastRewind,
                 contentDescription = null,
                 tint = White,
                 modifier = Modifier.size(32.dp)

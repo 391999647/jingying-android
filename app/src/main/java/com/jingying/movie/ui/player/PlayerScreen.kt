@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -65,7 +66,7 @@ import com.jingying.movie.R
 import com.jingying.movie.domain.model.Episode
 import com.jingying.movie.domain.model.MovieDetail
 import com.jingying.movie.ui.player.components.GestureOverlay
-import com.jingying.movie.ui.player.components.IjkVideoPlayer
+import com.jingying.movie.ui.player.components.ExoVideoPlayer
 import com.jingying.movie.ui.player.components.PlayerControls
 import com.jingying.movie.ui.theme.AccentRed
 import com.jingying.movie.ui.theme.BackgroundWhite
@@ -78,6 +79,7 @@ import com.jingying.movie.ui.theme.TransparentScrim
 import com.jingying.movie.ui.theme.White
 import com.jingying.movie.util.TimeUtil
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerScreen(
     vodId: Int,
@@ -214,7 +216,7 @@ private fun PortraitPlayerLayout(
                     .background(Color.Black)
             ) {
                 if (videoUrl.isNotBlank()) {
-                    IjkVideoPlayer(
+                    ExoVideoPlayer(
                         videoUrl = videoUrl,
                         playerState = playerState,
                         onPlayerReady = { viewModel.onPlayerReady(it) },
@@ -277,7 +279,7 @@ private fun FullscreenPlayerLayout(
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (videoUrl.isNotBlank()) {
-            IjkVideoPlayer(
+            ExoVideoPlayer(
                 videoUrl = videoUrl,
                 playerState = playerState,
                 onPlayerReady = { viewModel.onPlayerReady(it) },
