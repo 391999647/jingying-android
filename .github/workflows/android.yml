@@ -41,7 +41,7 @@ jobs:
 
       - name: Sign Release APK
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: r0adksp/sign-android-release@v1
+        uses: r0adkll/sign-android-release@v1
         id: sign_app
         with:
           releaseDirectory: app/build/outputs/apk/release
