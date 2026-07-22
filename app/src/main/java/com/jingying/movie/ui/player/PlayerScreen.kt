@@ -45,9 +45,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,7 +60,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.jingying.movie.R
-import com.jingying.movie.domain.model.Episode
 import com.jingying.movie.domain.model.MovieDetail
 import com.jingying.movie.ui.player.components.GestureOverlay
 import com.jingying.movie.ui.player.components.ExoVideoPlayer
@@ -73,10 +70,8 @@ import com.jingying.movie.ui.theme.BorderGray
 import com.jingying.movie.ui.theme.CardBackground
 import com.jingying.movie.ui.theme.PrimaryText
 import com.jingying.movie.ui.theme.SecondaryText
-import com.jingying.movie.ui.theme.TertiaryText
 import com.jingying.movie.ui.theme.TransparentScrim
 import com.jingying.movie.ui.theme.White
-import com.jingying.movie.util.TimeUtil
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -221,6 +216,8 @@ private fun PortraitPlayerLayout(
                 ExoVideoPlayer(
                     videoUrl = videoUrl,
                     playerState = playerState,
+                    onPositionUpdate = { pos, dur -> viewModel.onPositionUpdate(pos, dur) },
+                    onPlaybackStateChanged = { playing -> viewModel.onPlaybackStateChanged(playing) },
                     onError = { viewModel.saveHistoryImmediate() },
                     onCompletion = { viewModel.nextEpisode() },
                     modifier = Modifier.fillMaxSize()
@@ -288,12 +285,14 @@ private fun FullscreenPlayerLayout(
     Box(modifier = Modifier.fillMaxSize()) {
         if (videoUrl.isNotBlank()) {
             ExoVideoPlayer(
-                videoUrl = videoUrl,
-                playerState = playerState,
-                onError = { viewModel.saveHistoryImmediate() },
-                onCompletion = { viewModel.nextEpisode() },
-                modifier = Modifier.fillMaxSize()
-            )
+                    videoUrl = videoUrl,
+                    playerState = playerState,
+                    onPositionUpdate = { pos, dur -> viewModel.onPositionUpdate(pos, dur) },
+                    onPlaybackStateChanged = { playing -> viewModel.onPlaybackStateChanged(playing) },
+                    onError = { viewModel.saveHistoryImmediate() },
+                    onCompletion = { viewModel.nextEpisode() },
+                    modifier = Modifier.fillMaxSize()
+                )
             GestureOverlay(
                 position = playerState.position,
                 duration = playerState.duration,
