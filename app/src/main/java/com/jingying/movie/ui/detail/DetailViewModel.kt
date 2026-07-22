@@ -5,11 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jingying.movie.data.repository.HistoryRepository
 import com.jingying.movie.data.repository.MovieRepository
-import com.jingying.movie.domain.model.MovieDetail
 import com.jingying.movie.domain.model.PlayHistory
 import com.jingying.movie.domain.model.Resource
-import com.jingying.movie.domain.model.ResourceSite
-import com.jingying.movie.domain.model.ResourceSites
 import com.jingying.movie.util.AppLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,32 +34,20 @@ class DetailViewModel @Inject constructor(
         loadDetail()
     }
 
-    fun loadDetail() {
-        loadDetailWithSite(null)
-    }
-
-    fun switchResourceSite(site: ResourceSite) {
-        loadDetailWithSite(site)
-    }
-
-    private fun loadDetailWithSite(resourceSite: ResourceSite?) {
+    fun loadDetail(refresh: Boolean = false) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            val history = historyRepository.getHistoryByEpisode(vodId, "")
-            val siteName = resourceSite?.name.takeIf { it != "默认" }
-            when (val result = movieRepository.getMovieDetail(vodId, siteName)) {
+            when (val result = movieRepository.getMovieDetail(vodId, refresh)) {
                 is Resource.Success -> {
                     val detail = result.data
-                    val availableSites = getAvailableSites(detail)
+                    val history = historyRepository.getHistoryByEpisode(vodId, "")
                     _uiState.value = _uiState.value.copy(
                         movie = detail,
                         isLoading = false,
                         error = null,
-                        lastHistory = history,
-                        currentSite = resourceSite ?: ResourceSites.fromName(detail.resourceSite),
-                        availableSites = availableSites
+                        lastHistory = history
                     )
-                    AppLogger.i(TAG, "加载详情成功: ${detail.vodName}, 资源站=${resourceSite?.name}")
+                    AppLogger.i(TAG, "加载详情成功: ${detail.vodName}")
                 }
                 is Resource.Error -> {
                     _uiState.value = _uiState.value.copy(
@@ -76,28 +61,10 @@ class DetailViewModel @Inject constructor(
         }
     }
 
-    private fun getAvailableSites(detail: MovieDetail): List<ResourceSite> {
-        val sites = mutableListOf<ResourceSite>()
-        if (!detail.resourceSite.isNullOrBlank()) {
-            ResourceSites.fromName(detail.resourceSite).let {
-                if (it != ResourceSites.DEFAULT) sites.add(it)
-            }
-        }
-        sites.add(ResourceSites.DEFAULT)
-        ResourceSites.ALL.forEach { site ->
-            if (site != ResourceSites.DEFAULT && !sites.contains(site)) {
-                sites.add(site)
-            }
-        }
-        return sites.distinctBy { it.name }
-    }
-
     data class DetailUiState(
-        val movie: MovieDetail? = null,
+        val movie: com.jingying.movie.domain.model.MovieDetail? = null,
         val isLoading: Boolean = false,
         val error: String? = null,
-        val lastHistory: PlayHistory? = null,
-        val currentSite: ResourceSite = ResourceSites.DEFAULT,
-        val availableSites: List<ResourceSite> = emptyList()
+        val lastHistory: PlayHistory? = null
     )
 }

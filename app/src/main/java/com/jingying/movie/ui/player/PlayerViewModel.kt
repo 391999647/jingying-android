@@ -8,8 +8,6 @@ import com.jingying.movie.data.repository.MovieRepository
 import com.jingying.movie.domain.model.MovieDetail
 import com.jingying.movie.domain.model.PlayHistory
 import com.jingying.movie.domain.model.Resource
-import com.jingying.movie.domain.model.ResourceSite
-import com.jingying.movie.domain.model.ResourceSites
 import com.jingying.movie.util.AppLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -41,26 +39,16 @@ class PlayerViewModel @Inject constructor(
     val playerState: StateFlow<PlayerState> = _playerState
 
     private var autoSaveJob: Job? = null
-    private var isDirty = false // 有未保存的进度
+    private var isDirty = false
 
     init {
         loadDetail()
     }
 
-    fun loadDetail() {
-        loadDetailWithSite(null)
-    }
-
-    fun switchResourceSite(site: ResourceSite) {
-        saveHistoryImmediate()
-        loadDetailWithSite(site)
-    }
-
-    private fun loadDetailWithSite(resourceSite: ResourceSite?) {
+    fun loadDetail(refresh: Boolean = false) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            val siteName = resourceSite?.name.takeIf { it != "默认" }
-            when (val result = movieRepository.getMovieDetail(vodId, siteName)) {
+            when (val result = movieRepository.getMovieDetail(vodId, refresh)) {
                 is Resource.Success -> {
                     val detail = result.data
                     val episodes = detail.episodes
@@ -69,14 +57,11 @@ class PlayerViewModel @Inject constructor(
                     val history = episode?.let {
                         historyRepository.getHistoryByEpisode(vodId, it.url)
                     }
-                    val availableSites = getAvailableSites(detail)
                     _uiState.value = _uiState.value.copy(
                         movie = detail,
                         currentEpisodeIndex = episodeIndex,
                         isLoading = false,
-                        error = null,
-                        currentSite = resourceSite ?: ResourceSites.fromName(detail.resourceSite),
-                        availableSites = availableSites
+                        error = null
                     )
                     _playerState.value = _playerState.value.copy(
                         position = history?.position ?: 0L,
@@ -86,7 +71,7 @@ class PlayerViewModel @Inject constructor(
                     )
                     isDirty = false
                     startAutoSave()
-                    AppLogger.i(TAG, "加载详情成功: ${detail.vodName}, 集数=$episodeIndex, 资源站=${resourceSite?.name}")
+                    AppLogger.i(TAG, "加载详情成功: ${detail.vodName}, 集数=$episodeIndex")
                 }
                 is Resource.Error -> {
                     _uiState.value = _uiState.value.copy(
@@ -100,22 +85,6 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    private fun getAvailableSites(detail: MovieDetail): List<ResourceSite> {
-        val sites = mutableListOf<ResourceSite>()
-        if (!detail.resourceSite.isNullOrBlank()) {
-            ResourceSites.fromName(detail.resourceSite).let {
-                if (it != ResourceSites.DEFAULT) sites.add(it)
-            }
-        }
-        sites.add(ResourceSites.DEFAULT)
-        ResourceSites.ALL.forEach { site ->
-            if (site != ResourceSites.DEFAULT && !sites.contains(site)) {
-                sites.add(site)
-            }
-        }
-        return sites.distinctBy { it.name }
-    }
-
     fun onPositionUpdate(position: Long, duration: Long) {
         _playerState.value = _playerState.value.copy(
             position = position,
@@ -126,7 +95,6 @@ class PlayerViewModel @Inject constructor(
 
     fun onPlaybackStateChanged(isPlaying: Boolean) {
         _playerState.value = _playerState.value.copy(isPlaying = isPlaying)
-        // 暂停时立即保存
         if (!isPlaying && isDirty) {
             saveHistoryImmediate()
         }
@@ -256,8 +224,6 @@ class PlayerViewModel @Inject constructor(
         val movie: MovieDetail? = null,
         val currentEpisodeIndex: Int = 0,
         val isLoading: Boolean = false,
-        val error: String? = null,
-        val currentSite: ResourceSite = ResourceSites.DEFAULT,
-        val availableSites: List<ResourceSite> = emptyList()
+        val error: String? = null
     )
 }

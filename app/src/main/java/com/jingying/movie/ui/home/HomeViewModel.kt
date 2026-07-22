@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.jingying.movie.data.repository.MovieRepository
 import com.jingying.movie.domain.model.Movie
 import com.jingying.movie.domain.model.MovieType
-import com.jingying.movie.domain.model.Pagination
 import com.jingying.movie.domain.model.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,29 +21,11 @@ class HomeViewModel @Inject constructor(
     val uiState: StateFlow<HomeUiState> = _uiState
 
     init {
-        loadTypes()
+        // 直接从内置映射加载分类，无需调用 API
+        _uiState.value = _uiState.value.copy(
+            types = movieRepository.getTypes()
+        )
         loadMovies()
-    }
-
-    fun loadTypes() {
-        viewModelScope.launch {
-            when (val result = movieRepository.getTypes()) {
-                is Resource.Success -> {
-                    val allType = MovieType(0, "全部")
-                    _uiState.value = _uiState.value.copy(
-                        types = listOf(allType) + result.data,
-                        isLoadingTypes = false
-                    )
-                }
-                is Resource.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        error = result.message,
-                        isLoadingTypes = false
-                    )
-                }
-                else -> {}
-            }
-        }
     }
 
     fun loadMovies(refresh: Boolean = false) {
@@ -113,7 +94,6 @@ class HomeViewModel @Inject constructor(
         val page: Int = 1,
         val pages: Int = 1,
         val isLoading: Boolean = false,
-        val isLoadingTypes: Boolean = true,
         val isRefreshing: Boolean = false,
         val error: String? = null
     )

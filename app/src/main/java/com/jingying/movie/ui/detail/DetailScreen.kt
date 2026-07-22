@@ -52,7 +52,6 @@ import coil.compose.AsyncImage
 import com.jingying.movie.R
 import com.jingying.movie.domain.model.Episode
 import com.jingying.movie.domain.model.MovieDetail
-import com.jingying.movie.domain.model.ResourceSite
 import com.jingying.movie.ui.components.EmptyState
 import com.jingying.movie.ui.components.LoadingShimmer
 import com.jingying.movie.ui.theme.AccentRed
@@ -112,15 +111,6 @@ fun DetailScreen(
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     item { DetailHeader(movie = movie, onPlayClick = { onPlayClick(movie.vodId, 0) }) }
                     item { SynopsisSection(content = movie.vodContent) }
-                    if (uiState.availableSites.size > 1) {
-                        item { 
-                            ResourceSiteSection(
-                                currentSite = uiState.currentSite,
-                                availableSites = uiState.availableSites,
-                                onSiteClick = { viewModel.switchResourceSite(it) }
-                            ) 
-                        }
-                    }
                     if (movie.episodes.size > 1) {
                         item { EpisodesSection(episodes = movie.episodes, onEpisodeClick = { onPlayClick(movie.vodId, it) }) }
                     }
@@ -332,54 +322,4 @@ private fun InfoRow(label: String, value: String) {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ResourceSiteSection(
-    currentSite: ResourceSite,
-    availableSites: List<ResourceSite>,
-    onSiteClick: (ResourceSite) -> Unit
-) {
-    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        Text(
-            text = "资源站",
-            style = MaterialTheme.typography.titleMedium,
-            color = PrimaryText
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            availableSites.forEach { site ->
-                ResourceSiteChip(
-                    name = site.name,
-                    isSelected = site == currentSite,
-                    onClick = { onSiteClick(site) }
-                )
-            }
-        }
-    }
-}
 
-@Composable
-private fun ResourceSiteChip(name: String, isSelected: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (isSelected) AccentRed else CardBackground)
-            .border(
-                1.dp,
-                if (isSelected) AccentRed else BorderGray,
-                RoundedCornerShape(8.dp)
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = name,
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (isSelected) White else PrimaryText
-        )
-    }
-}

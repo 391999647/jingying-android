@@ -10,7 +10,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,7 +19,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -66,7 +64,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.jingying.movie.R
 import com.jingying.movie.domain.model.Episode
 import com.jingying.movie.domain.model.MovieDetail
-import com.jingying.movie.domain.model.ResourceSite
 import com.jingying.movie.ui.player.components.GestureOverlay
 import com.jingying.movie.ui.player.components.ExoVideoPlayer
 import com.jingying.movie.ui.player.components.PlayerControls
@@ -184,8 +181,6 @@ fun PlayerScreen(
                 PortraitPlayerLayout(
                     movie = movie,
                     currentEpisodeIndex = uiState.currentEpisodeIndex,
-                    currentSite = uiState.currentSite,
-                    availableSites = uiState.availableSites,
                     playerState = playerState,
                     viewModel = viewModel,
                     paddingValues = paddingValues,
@@ -203,8 +198,6 @@ fun PlayerScreen(
 private fun PortraitPlayerLayout(
     movie: MovieDetail,
     currentEpisodeIndex: Int,
-    currentSite: ResourceSite,
-    availableSites: List<ResourceSite>,
     playerState: PlayerState,
     viewModel: PlayerViewModel,
     paddingValues: PaddingValues,
@@ -272,12 +265,9 @@ private fun PortraitPlayerLayout(
                 PlayerInfoSection(
                     movie = movie,
                     currentEpisodeIndex = currentEpisodeIndex,
-                    currentSite = currentSite,
-                    availableSites = availableSites,
                     onEpisodeClick = { viewModel.switchEpisode(it) },
                     onPrevious = { viewModel.previousEpisode() },
-                    onNext = { viewModel.nextEpisode() },
-                    onSiteClick = { viewModel.switchResourceSite(it) }
+                    onNext = { viewModel.nextEpisode() }
                 )
             }
         }
@@ -331,17 +321,13 @@ private fun FullscreenPlayerLayout(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PlayerInfoSection(
     movie: MovieDetail,
     currentEpisodeIndex: Int,
-    currentSite: ResourceSite,
-    availableSites: List<ResourceSite>,
     onEpisodeClick: (Int) -> Unit,
     onPrevious: () -> Unit,
-    onNext: () -> Unit,
-    onSiteClick: (ResourceSite) -> Unit
+    onNext: () -> Unit
 ) {
     Column(modifier = Modifier.padding(16.dp)) {
         Text(
@@ -381,27 +367,6 @@ private fun PlayerInfoSection(
                 Icon(Icons.Default.KeyboardArrowRight, contentDescription = null, tint = PrimaryText)
             }
         }
-        if (availableSites.size > 1) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "资源站",
-                style = MaterialTheme.typography.titleMedium,
-                color = PrimaryText
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                availableSites.forEach { site ->
-                    ResourceSiteChip(
-                        name = site.name,
-                        isSelected = site == currentSite,
-                        onClick = { onSiteClick(site) }
-                    )
-                }
-            }
-        }
         if (movie.episodes.size > 1) {
             Spacer(modifier = Modifier.height(16.dp))
             Text(
@@ -425,29 +390,6 @@ private fun PlayerInfoSection(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun ResourceSiteChip(name: String, isSelected: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (isSelected) AccentRed else CardBackground)
-            .border(
-                1.dp,
-                if (isSelected) AccentRed else BorderGray,
-                RoundedCornerShape(8.dp)
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = name,
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (isSelected) White else PrimaryText
-        )
     }
 }
 

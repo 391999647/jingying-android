@@ -6,11 +6,6 @@ import retrofit2.http.Query
 interface ApiService {
 
     @GET("/api.php")
-    suspend fun getTypes(
-        @Query("action") action: String = "types"
-    ): ApiResponse<List<MovieTypeResponse>>
-
-    @GET("/api.php")
     suspend fun getMovieList(
         @Query("action") action: String = "list",
         @Query("page") page: Int = 1,
@@ -21,8 +16,7 @@ interface ApiService {
     @GET("/api.php")
     suspend fun getMovieDetail(
         @Query("action") action: String = "detail",
-        @Query("vod_id") vodId: Int,
-        @Query("resource_site") resourceSite: String? = null
+        @Query("vod_id") vodId: Int
     ): ApiResponse<MovieDetailResponse>
 
     @GET("/api.php")
