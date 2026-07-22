@@ -10,10 +10,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -53,18 +53,16 @@ fun ExoVideoPlayer(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // 判断当前网络类型
-    val isMetered = remember {
-        isActiveNetworkMetered(context)
-    }
+    val isMetered = remember { isActiveNetworkMetered(context) }
 
     // 根据网络类型选择参数
     val (maxVideoHeight, maxBitrate, minBufferMs, maxBufferMs) = remember {
         if (isMetered) {
             // 移动数据网络：严格限制
-            Triple(720, 1_500_000, 5_000L, 15_000L)
+            PlayerLimits(720, 1_500_000, 5_000L, 15_000L)
         } else {
             // Wi-Fi 网络：适度限制（防止跑 4K）
-            Triple(1080, 4_000_000, 10_000L, 30_000L)
+            PlayerLimits(1080, 4_000_000, 10_000L, 30_000L)
         }
     }
 
@@ -179,7 +177,6 @@ fun ExoVideoPlayer(
         }
 
         onDispose {
-            // 停止播放并释放资源
             exoPlayer.stop()
         }
     }
@@ -208,11 +205,18 @@ fun ExoVideoPlayer(
     )
 }
 
+/** 播放器限制参数（替代 Triple，支持 4 个字段） */
+private data class PlayerLimits(
+    val maxVideoHeight: Int,
+    val maxBitrate: Int,
+    val minBufferMs: Long,
+    val maxBufferMs: Long
+)
+
 /** 判断当前活动网络是否为计费网络（移动数据） */
 private fun isActiveNetworkMetered(context: android.content.Context): Boolean {
     val cm = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
     val network = cm.activeNetwork ?: return false
     val caps = cm.getNetworkCapabilities(network) ?: return false
-    // 如果没有 NOT_METERED 能力，则视为计费网络
     return !caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
 }
