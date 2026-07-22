@@ -59,10 +59,10 @@ fun ExoVideoPlayer(
     val (maxVideoHeight, maxBitrate, minBufferMs, maxBufferMs) = remember {
         if (isMetered) {
             // 移动数据网络：严格限制
-            PlayerLimits(720, 1_500_000, 5_000L, 15_000L)
+            PlayerLimits(720, 1_500_000, 5_000, 15_000)
         } else {
             // Wi-Fi 网络：适度限制（防止跑 4K）
-            PlayerLimits(1080, 4_000_000, 10_000L, 30_000L)
+            PlayerLimits(1080, 4_000_000, 10_000, 30_000)
         }
     }
 
@@ -209,8 +209,8 @@ fun ExoVideoPlayer(
 private data class PlayerLimits(
     val maxVideoHeight: Int,
     val maxBitrate: Int,
-    val minBufferMs: Long,
-    val maxBufferMs: Long
+    val minBufferMs: Int,
+    val maxBufferMs: Int
 )
 
 /** 判断当前活动网络是否为计费网络（移动数据） */
