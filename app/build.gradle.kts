@@ -74,12 +74,6 @@ dependencies {
 
     implementation(libs.bundles.media3)
 
-    implementation(libs.androidx.paging.runtime)
-    implementation(libs.androidx.paging.compose)
-
-    implementation(libs.androidx.appcompat)
-    implementation(libs.material)
-
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")

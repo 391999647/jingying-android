@@ -27,9 +27,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.jingying.movie.ui.player.ScreenScaleType
 import com.jingying.movie.ui.theme.TransparentScrim
 import com.jingying.movie.ui.theme.White
 import com.jingying.movie.util.TimeUtil
@@ -41,10 +47,12 @@ fun PlayerControls(
     position: Long,
     duration: Long,
     isFullscreen: Boolean,
+    scaleType: ScreenScaleType,
     visible: Boolean,
     onPlayPause: () -> Unit,
     onSeek: (Float) -> Unit,
     onFullscreenToggle: () -> Unit,
+    onToggleScaleType: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -124,12 +132,29 @@ fun PlayerControls(
                         color = White,
                         style = MaterialTheme.typography.labelMedium
                     )
-                    IconButton(onClick = onFullscreenToggle) {
-                        Icon(
-                            imageVector = if (isFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
-                            contentDescription = "全屏",
-                            tint = White
-                        )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .border(1.dp, Color.White.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
+                                .clickable { onToggleScaleType() }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = scaleType.description,
+                                color = White,
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(onClick = onFullscreenToggle) {
+                            Icon(
+                                imageVector = if (isFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+                                contentDescription = "全屏",
+                                tint = White
+                            )
+                        }
                     }
                 }
             }

@@ -8,6 +8,8 @@ import com.jingying.movie.data.repository.MovieRepository
 import com.jingying.movie.domain.model.MovieDetail
 import com.jingying.movie.domain.model.PlayHistory
 import com.jingying.movie.domain.model.Resource
+import com.jingying.movie.domain.model.ResourceSite
+import com.jingying.movie.domain.model.ResourceSites
 import com.jingying.movie.util.AppLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -46,9 +48,19 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun loadDetail() {
+        loadDetailWithSite(null)
+    }
+
+    fun switchResourceSite(site: ResourceSite) {
+        saveHistoryImmediate()
+        loadDetailWithSite(site)
+    }
+
+    private fun loadDetailWithSite(resourceSite: ResourceSite?) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            when (val result = movieRepository.getMovieDetail(vodId)) {
+            val siteName = resourceSite?.name.takeIf { it != "默认" }
+            when (val result = movieRepository.getMovieDetail(vodId, siteName)) {
                 is Resource.Success -> {
                     val detail = result.data
                     val episodes = detail.episodes
@@ -57,18 +69,24 @@ class PlayerViewModel @Inject constructor(
                     val history = episode?.let {
                         historyRepository.getHistoryByEpisode(vodId, it.url)
                     }
+                    val availableSites = getAvailableSites(detail)
                     _uiState.value = _uiState.value.copy(
                         movie = detail,
                         currentEpisodeIndex = episodeIndex,
                         isLoading = false,
-                        error = null
+                        error = null,
+                        currentSite = resourceSite ?: ResourceSites.fromName(detail.resourceSite),
+                        availableSites = availableSites
                     )
                     _playerState.value = _playerState.value.copy(
                         position = history?.position ?: 0L,
-                        isPlaying = true
+                        duration = 0L,
+                        isPlaying = true,
+                        isLoading = false
                     )
+                    isDirty = false
                     startAutoSave()
-                    AppLogger.i(TAG, "加载详情成功: ${detail.vodName}, 集数=$episodeIndex")
+                    AppLogger.i(TAG, "加载详情成功: ${detail.vodName}, 集数=$episodeIndex, 资源站=${resourceSite?.name}")
                 }
                 is Resource.Error -> {
                     _uiState.value = _uiState.value.copy(
@@ -80,6 +98,22 @@ class PlayerViewModel @Inject constructor(
                 else -> {}
             }
         }
+    }
+
+    private fun getAvailableSites(detail: MovieDetail): List<ResourceSite> {
+        val sites = mutableListOf<ResourceSite>()
+        if (!detail.resourceSite.isNullOrBlank()) {
+            ResourceSites.fromName(detail.resourceSite).let {
+                if (it != ResourceSites.DEFAULT) sites.add(it)
+            }
+        }
+        sites.add(ResourceSites.DEFAULT)
+        ResourceSites.ALL.forEach { site ->
+            if (site != ResourceSites.DEFAULT && !sites.contains(site)) {
+                sites.add(site)
+            }
+        }
+        return sites.distinctBy { it.name }
     }
 
     fun onPositionUpdate(position: Long, duration: Long) {
@@ -161,6 +195,16 @@ class PlayerViewModel @Inject constructor(
         _playerState.value = _playerState.value.copy(isFullscreen = isFullscreen)
     }
 
+    fun toggleScaleType() {
+        val currentType = _playerState.value.scaleType
+        val nextType = when (currentType) {
+            ScreenScaleType.FIT -> ScreenScaleType.FILL
+            ScreenScaleType.FILL -> ScreenScaleType.ZOOM
+            ScreenScaleType.ZOOM -> ScreenScaleType.FIT
+        }
+        _playerState.value = _playerState.value.copy(scaleType = nextType)
+    }
+
     fun saveHistoryImmediate() {
         if (!isDirty) return
         val movie = _uiState.value.movie ?: return
@@ -212,6 +256,8 @@ class PlayerViewModel @Inject constructor(
         val movie: MovieDetail? = null,
         val currentEpisodeIndex: Int = 0,
         val isLoading: Boolean = false,
-        val error: String? = null
+        val error: String? = null,
+        val currentSite: ResourceSite = ResourceSites.DEFAULT,
+        val availableSites: List<ResourceSite> = emptyList()
     )
 }

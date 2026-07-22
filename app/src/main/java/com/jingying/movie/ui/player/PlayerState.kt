@@ -7,5 +7,6 @@ data class PlayerState(
     val seekTarget: Long = -1L,
     val isLoading: Boolean = false,
     val isFullscreen: Boolean = false,
-    val controlsVisible: Boolean = true
+    val controlsVisible: Boolean = true,
+    val scaleType: ScreenScaleType = ScreenScaleType.FIT
 )

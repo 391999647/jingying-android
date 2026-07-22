@@ -123,6 +123,9 @@ fun ExoVideoPlayer(
                 )
             }
         },
+        update = { playerView ->
+            playerView.resizeMode = playerState.scaleType.value
+        },
         modifier = modifier
     )
 }

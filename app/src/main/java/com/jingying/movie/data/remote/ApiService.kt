@@ -21,7 +21,8 @@ interface ApiService {
     @GET("/api.php")
     suspend fun getMovieDetail(
         @Query("action") action: String = "detail",
-        @Query("vod_id") vodId: Int
+        @Query("vod_id") vodId: Int,
+        @Query("resource_site") resourceSite: String? = null
     ): ApiResponse<MovieDetailResponse>
 
     @GET("/api.php")

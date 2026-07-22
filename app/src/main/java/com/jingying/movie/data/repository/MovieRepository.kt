@@ -95,25 +95,32 @@ class MovieRepository @Inject constructor(
 
     suspend fun getMovieDetail(
         vodId: Int,
+        resourceSite: String? = null,
         forceRefresh: Boolean = false
     ): Resource<MovieDetail> = withContext(Dispatchers.IO) {
         try {
-            if (!forceRefresh) {
+            if (!forceRefresh && resourceSite == null) {
                 val cached = database.detailDao().getDetailById(vodId)
                 if (cached != null) {
                     return@withContext Resource.Success(cached.toDomain())
                 }
             }
-            val response = apiService.getMovieDetail(vodId = vodId)
+            val response = apiService.getMovieDetail(vodId = vodId, resourceSite = resourceSite)
             val detail = response.requireData().toDomain()
-            database.detailDao().insertDetail(detail.toEntity())
+            if (resourceSite == null) {
+                database.detailDao().insertDetail(detail.toEntity())
+            }
             Resource.Success(detail)
         } catch (e: Exception) {
-            val cached = database.detailDao().getDetailById(vodId)
-            if (cached != null) {
-                Resource.Success(cached.toDomain())
+            if (resourceSite == null) {
+                val cached = database.detailDao().getDetailById(vodId)
+                if (cached != null) {
+                    Resource.Success(cached.toDomain())
+                } else {
+                    Resource.Error(e.message ?: "加载详情失败")
+                }
             } else {
-                Resource.Error(e.message ?: "加载详情失败")
+                Resource.Error(e.message ?: "加载资源失败")
             }
         }
     }

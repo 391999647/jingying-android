@@ -20,3 +20,7 @@ local.properties
 
 # Logs
 *.log
+
+# Local build tools
+.tools/
+
